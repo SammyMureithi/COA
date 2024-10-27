@@ -1,13 +1,20 @@
 <?php
 
 namespace App\Repositories\Pdf;
+
+use App\Http\Requests\ExcellRequest;
 use App\Http\Requests\PdfQuestioneer;
+use App\Models\Exports;
 use App\Models\TestResults;
 use App\Repositories\Pdf\PdfRepositoryInterface;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Spatie\PdfToText\Pdf;
+use Throwable;
+use Maatwebsite\Excel\Facades\Excel;
 
+
+use Carbon\Carbon;
 class PdfRepository implements PdfRepositoryInterface
 {
     public function readAndFillQuestioneers(PdfQuestioneer $request)
@@ -155,6 +162,75 @@ public function getTestDetails(){
         ], 500);
     }
 }
+
+
+
+public function uploadExcell(ExcellRequest $request)
+{
+    try {
+        $file = $request->file('file');
+        $data = Excel::toArray([], $file);
+        $sheetData = $data[0];
+
+       $headers = array_map('strtolower', $sheetData[0]); 
+       $columnMap = array_flip($headers); 
+       foreach ($sheetData as $index => $row) {
+           if ($index == 0) {
+               continue; 
+           }
+
+           $parsedDate = null;
+           if (!empty($row[$columnMap['date']] ?? null)) {
+               try {
+                   $parsedDate = Carbon::parse($row[$columnMap['date']])->format('Y-m-d');
+               } catch (\Exception $e) {
+                   Log::error('Date parsing error for row: ' . $index . ' with value: ' . $row[$columnMap['date']]);
+               }
+           }
+
+           Exports::create([
+               'hs_code' => $row[$columnMap['hs_code']] ?? null,
+               'date' => $parsedDate,
+               'product_description' => $row[$columnMap['product_description']] ?? null,
+               'quantity' => $row[$columnMap['quantity']] ?? null,
+               'unit' => $row[$columnMap['unit']] ?? null,
+               'fob_value_usd' => $row[$columnMap['fob_value_usd']] ?? null,
+               'indian_export_name' => $row[$columnMap['indian_exporter_name']] ?? null,
+               'foreign_export_name' => $row[$columnMap['foreign_importer_name']] ?? null,
+               'importer_country' => $row[$columnMap['importer_country']] ?? null,
+           ]);
+       }
+
+        return response()->json(['message' => 'Excel file processed and data inserted successfully.','ok'=>true,'status'=>"sucesss"]);
+    } catch (Throwable $th) {
+        // Log the actual error message
+        Log::error($th->getMessage());
+        return response()->json(['error' => $th->getMessage()], 500);
+    }
+}
+
+public function getExports()
+{
+    try {
+
+        // Get paginated data from the 'exports' table
+        $exports = Exports::paginate(10);
+
+        // Return the paginated data as JSON response
+        return response()->json($exports);
+        
+    } catch (Throwable $th) {
+        // Log the error message for debugging
+        Log::error('Error fetching exports: ' . $th->getMessage());
+
+        // Return a JSON error response with status code 500
+        return response()->json([
+            'error' => 'Failed to retrieve exports data. Please try again later.'
+        ], 500);
+    }
+}
+
+
     
     
     

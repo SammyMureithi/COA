@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ExcellRequest;
 use App\Http\Requests\PdfQuestioneer;
 use App\Repositories\Pdf\PdfRepositoryInterface;
 use Illuminate\Http\Request;
@@ -20,6 +21,14 @@ class PdfQuestioneerController extends Controller
     public function getTestDetails()
     {
         return $this->pdfRepository->getTestDetails();
+    }
+    public function uploadExcell(ExcellRequest $request)
+    {
+        return $this->pdfRepository->uploadExcell($request);
+    }
+    public function getExports()
+    {
+        return $this->pdfRepository->getExports();
     }
    
 }
