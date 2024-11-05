@@ -13,9 +13,16 @@ return new class extends Migration
         Schema::create('test_results', function (Blueprint $table) {
             $table->id();
             $table->string('batch_number');
-            $table->string('sample_number');
-            $table->timestamps();
+            $table->string('sample_number'); 
+            $table->string('aceton_insoluble');
+            $table->string('acid_value');
+            $table->string('color_gardner');
+            $table->string('peroxide_value');
+            $table->string('result_based_on_sample_mass');
+            $table->string('toluene_insoluble_matter');
+            $table->string('viscosity_25C');
             $table->unique(['batch_number', 'sample_number']);
+            $table->timestamps();
         });
     }
 

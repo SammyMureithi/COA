@@ -73,27 +73,18 @@ private function extractPdfData($pdfText){
     $pdfText = preg_replace("/\n+/", " ", $pdfText);
     // Initialize data array
     $data = [
-        'certificate' => 'N/A',
-        'received_on' => 'N/A',
-        'date_of_analysis' => 'N/A',
-        'sample' => 'N/A',
         'sample_no' => 'N/A',
         'batch' => 'N/A',
-        'test_name' => 'N/A',
-        'method' => 'N/A',
-        'result' => 'N/A',
-        'unit' => 'N/A',
-        'uncertainty' => 'N/A'
+        'aceton_insoluble' => 'N/A',
+        'acid_value' => 'N/A',
+        'color_gardner'=> 'N/A',
+        'peroxide_value' => 'N/A',
+        'result_based_on_sample_mass' => 'N/A',
+        'toluene_insoluble_matter'=> 'N/A',
+        'viscosity_25C' => 'N/A' 
     ];
    
 
-    //Cerificate Number
-    preg_match('/Sampling:\s*(\d{4}\/[\w\s\-]+)(?=\s+\d{2}\.\d{2}\.\d{4})/', $pdfText, $matches);
-    $data['certificate'] = $matches[1] ?? $data['certificate'];
-    
-    // Since "Received on" is missing, capture the date after "Sampling"
-    preg_match('/Sampling:\s*\d{4}\/[\w\s\-]+\s*(\d{2}\.\d{2}\.\d{4})/', $pdfText, $matches);
-    $data['received_on'] = $matches[1] ?? 'N/A';
     
     // Step 1: Extract the Sample No
     preg_match('/M\s?\d+/', $pdfText, $sampleMatches);
@@ -126,9 +117,51 @@ private function extractPdfData($pdfText){
             'message' => 'Sample No not found or pattern mismatch.',
         ], 500);
     }
+
+      // Extract "Aceton insoluble" value
+      preg_match('/Aceton insoluble\s*([\d,]+)\s*%/i', $pdfText, $matches);
+      $data['aceton_insoluble'] = isset($matches[1]) ? $matches[1] . ' %' : 'N/A';
+  
+    // Extract "Acid value" value
+    preg_match('/Acid value\s*([\d,]+)\s*mg KOH\/g/i', $pdfText, $matches);
+    $data['acid_value'] = isset($matches[1]) ? $matches[1] . ' mg KOH/g' : 'N/A';
+
+
+     // Extract "Color Gardner, dilution 10 (w/w) with toluene" value
+     preg_match('/Color Gardner, dilution 10 \(w\/w\) with toluene\s*([\d,]+)/i', $pdfText, $matches);
+     $data['color_gardner'] = isset($matches[1]) ? $matches[1] : 'N/A';
+
+      // Extract "Peroxide value" value
+    if (preg_match('/Peroxide value\s*(Less than\s*)?([\d,]+)\s*meq O2\/kg/i', $pdfText, $matches)) {
+        $data['peroxide_value'] = isset($matches[1]) && trim($matches[1]) === 'Less than'
+            ? 'Less than ' . $matches[2] . ' meq O2/kg'
+            : $matches[2] . ' meq O2/kg';
+    } else {
+        $data['peroxide_value'] = 'N/A';
+    }
+    if (preg_match('/Result based on sample mass of\s*([\d,]+)\s*(\w+)/i', $pdfText, $matches)) {
+        $data['result_based_on_sample_mass'] = $matches[1] . ' ' . $matches[2];
+    }
+     preg_match('/Toluene insoluble matter\s*([\d,]+)\s*%/i', $pdfText, $matches);
+    $data['toluene_insoluble_matter'] = isset($matches[1]) ? $matches[1] . ' %' : 'N/A';
+
+
+    // Extract "Viscosity at 25°C" value
+    if (preg_match('/Viscosity at 25°C\s*([\d,]+)\s*(\w+)?/i', $pdfText, $matches)) {
+        $data['viscosity_25C'] = isset($matches[2]) ? $matches[1] . ' ' . $matches[2] : $matches[1];
+    }
+
+   
     TestResults::create([
-        'sample_number'=>$data['sample_no'],
-        'batch_number'=> $data['batch']
+        'sample_number' => $data['sample_no'],
+        'batch_number' => $data['batch'],
+        'aceton_insoluble' => $data['aceton_insoluble'],
+        'acid_value' => $data['acid_value'],
+        'color_gardner'=>  $data['color_gardner'],
+        'peroxide_value' =>   $data['peroxide_value'],
+        'result_based_on_sample_mass' =>  $data['result_based_on_sample_mass'],
+        'toluene_insoluble_matter'=>  $data['toluene_insoluble_matter'],
+        'viscosity_25C'=>  $data['viscosity_25C']
     ]);
     return $data;
 }
