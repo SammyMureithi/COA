@@ -150,19 +150,75 @@ private function extractPdfData($pdfText){
     if (preg_match('/Viscosity at 25°C\s*([\d,]+)\s*(\w+)?/i', $pdfText, $matches)) {
         $data['viscosity_25C'] = isset($matches[2]) ? $matches[1] . ' ' . $matches[2] : $matches[1];
     }
+    if (!isset($data['batch']) || $data['batch'] === "N/A") {
+        // Adjusted regex to capture batch number
+        preg_match('/Batch\s*number.*?\b(B[A-Z0-9]+)/i', $pdfText, $matches);
+        $data['batch'] = isset($matches[1]) ? $matches[1] : 'N/A';
+        
+       
+    }
+preg_match('/Moisture\s*([\d.,]+)\s*%\s*\(w\/w\)/i', $pdfText, $matches);
 
-   
-    TestResults::create([
-        'sample_number' => $data['sample_no'],
-        'batch_number' => $data['batch'],
-        'aceton_insoluble' => $data['aceton_insoluble'],
-        'acid_value' => $data['acid_value'],
-        'color_gardner'=>  $data['color_gardner'],
-        'peroxide_value' =>   $data['peroxide_value'],
-        'result_based_on_sample_mass' =>  $data['result_based_on_sample_mass'],
-        'toluene_insoluble_matter'=>  $data['toluene_insoluble_matter'],
-        'viscosity_25C'=>  $data['viscosity_25C']
-    ]);
+$data['moisture'] = isset($matches[1]) ? $matches[1] . ' % (w/w)' : 'N/A';
+
+// Regex to match "Total plate count 30°C" followed by a numeric value and "cfu/g" unit
+preg_match('/Total plate count 30°C\s*([\d,]+)\s*cfu\/g/i', $pdfText, $matches);
+
+$data['total_plate_count'] = isset($matches[1]) ? $matches[1] . ' cfu/g' : 'N/A';
+
+// Regex to capture "Arsenic (As) (7440-38-2)" and the value following it
+// General regex to capture "Arsenic (As) (7440-38-2)" with variable values
+preg_match('/Arsenic \(As\) \(7440-38-2\)\s*(Less than\s*)?([\d.,]+)\s*mg\/kg/i', $pdfText, $matches);
+
+$data['arsenic'] = isset($matches[2]) ? (isset($matches[1]) ? $matches[1] . $matches[2] : $matches[2]) . ' mg/kg' : 'N/A';
+
+preg_match('/(Arsenic \(As\) \(7440-38-2\)|Cadmium \(Cd\) \(7440-43-9\))\s*(Less than\s*)?([\d.,]+)\s*mg\/kg/i', $pdfText, $matches);
+
+// Regex to capture "Cadmium (Cd) (7440-43-9)" with any associated value
+preg_match('/Cadmium \(Cd\) \(7440-43-9\)\s*(Less than\s*)?([\d.,]+)\s*mg\/kg/i', $pdfText, $matches);
+
+$data['cadmium'] = isset($matches[2]) ? (isset($matches[1]) ? $matches[1] . $matches[2] : $matches[2]) . ' mg/kg' : 'N/A';
+// Regex to capture "Lead (Pb) (7439-92-1)" with any associated value
+preg_match('/Lead \(Pb\) \(7439-92-1\)\s*(Less than\s*)?([\d.,]+)\s*mg\/kg/i', $pdfText, $matches);
+
+$data['lead'] = isset($matches[2]) ? (isset($matches[1]) ? $matches[1] . $matches[2] : $matches[2]) . ' mg/kg' : 'N/A';
+preg_match('/Mercury \(Hg\) \(7439-97-6\)\s*(Less than\s*)?([\d.,]+)\s*mg\/kg/i', $pdfText, $matches);
+
+$data['mercury'] = isset($matches[2]) ? (isset($matches[1]) ? $matches[1] . $matches[2] : $matches[2]) . ' mg/kg' : 'N/A';
+// Regex to capture "Total plate count 30°C" followed by a numeric value and "cfu/g"
+preg_match('/Total plate count 30°C\s*([\d.,]+)\s*cfu\/g/i', $pdfText, $matches);
+
+$data['total_plate_count'] = isset($matches[1]) ? $matches[1] . ' cfu/g' : 'N/A';
+
+// Regex to capture "Iron (Fe) (7439-89-6)" with its associated value
+preg_match('/Iron \(Fe\) \(7439-89-6\)\s*(Less than\s*)?([\d.,]+)\s*mg\/kg/i', $pdfText, $matches);
+
+$data['iron'] = isset($matches[2]) ? (isset($matches[1]) ? $matches[1] . $matches[2] : $matches[2]) . ' mg/kg' : 'N/A';
+
+// Regex to capture "GMO Screening" test result (either 'positive' or 'negative')
+preg_match('/GMO Screening.*?\b(positive|negative)\b/i', $pdfText, $matches);
+
+$data['GMO Screening'] = isset($matches[1]) ? $matches[1] : 'N/A';
+
+TestResults::create([
+    'sample_number' => $data['sample_no'],
+    'batch_number' => $data['batch'],
+    'aceton_insoluble' => $data['aceton_insoluble'],
+    'acid_value' => $data['acid_value'],
+    'color_gardner' => $data['color_gardner'],
+    'peroxide_value' => $data['peroxide_value'],
+    'result_based_on_sample_mass' => $data['result_based_on_sample_mass'],
+    'toluene_insoluble_matter' => $data['toluene_insoluble_matter'],
+    'viscosity_25C' => $data['viscosity_25C'],
+    'moisture' => $data['moisture'],
+    'total_plate_count' => $data['total_plate_count'],
+    'arsenic' => $data['arsenic'],
+    'cadmium' => $data['cadmium'],
+    'lead' => $data['lead'],
+    'mercury' => $data['mercury'],
+    'iron' => $data['iron'],
+    'GMO_Screening' => $data['GMO Screening']
+]);
     return $data;
 }
 

@@ -1,4 +1,5 @@
 <?php
+
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -12,15 +13,23 @@ return new class extends Migration
     {
         Schema::create('test_results', function (Blueprint $table) {
             $table->id();
+            $table->string('sample_number');
             $table->string('batch_number');
-            $table->string('sample_number'); 
-            $table->string('aceton_insoluble');
-            $table->string('acid_value');
-            $table->string('color_gardner');
-            $table->string('peroxide_value');
-            $table->string('result_based_on_sample_mass');
-            $table->string('toluene_insoluble_matter');
-            $table->string('viscosity_25C');
+            $table->string('aceton_insoluble')->nullable();
+            $table->string('acid_value')->nullable();
+            $table->string('color_gardner')->nullable();
+            $table->string('peroxide_value')->nullable();
+            $table->string('result_based_on_sample_mass')->nullable();
+            $table->string('toluene_insoluble_matter')->nullable();
+            $table->string('viscosity_25C')->nullable();
+            $table->string('moisture')->nullable();
+            $table->string('total_plate_count')->nullable();
+            $table->string('arsenic')->nullable();
+            $table->string('cadmium')->nullable();
+            $table->string('lead')->nullable();
+            $table->string('mercury')->nullable();
+            $table->string('iron')->nullable();
+            $table->string('GMO_Screening')->nullable();
             $table->unique(['batch_number', 'sample_number']);
             $table->timestamps();
         });
