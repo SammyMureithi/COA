@@ -13,7 +13,8 @@ Route::group(['prefix' => 'v1'], function () {
     });
 
     Route::group(['prefix' => 'excell'], function () {
-        Route::post('/upload', [PdfQuestioneerController::class, 'uploadExcell']);
+        Route::post('/upload', [PdfQuestioneerController::class, 'uploadExcellExports']);
         Route::get('/', [PdfQuestioneerController::class, 'getExports']);
+        Route::get('/export', [PdfQuestioneerController::class, 'getExcellDetails']);
     });
 });

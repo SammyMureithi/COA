@@ -30,5 +30,14 @@ class PdfQuestioneerController extends Controller
     {
         return $this->pdfRepository->getExports();
     }
+    public function getExcellDetails(Request $request)
+    {
+        return $this->pdfRepository->getExcellDetails($request);
+    }
+    
+    public function uploadExcellExports(ExcellRequest $request)
+    {
+        return $this->pdfRepository->uploadExcellExports($request);
+    }
    
 }

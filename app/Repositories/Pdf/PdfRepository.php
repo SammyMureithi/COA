@@ -15,6 +15,8 @@ use Maatwebsite\Excel\Facades\Excel;
 
 
 use Carbon\Carbon;
+use Illuminate\Http\Request;
+
 class PdfRepository implements PdfRepositoryInterface
 {
     public function readAndFillQuestioneers(PdfQuestioneer $request)
@@ -252,6 +254,30 @@ public function getTestDetails(){
     }
 }
 
+public function getExcellDetails(Request $request){
+    try {
+        ob_clean();
+        $searchQuery = $request->query('class');
+        $test = Exports::where('red equivalent (if any; if not (certain): undefined)', $searchQuery)->paginate(5);
+        return response()->json([
+            'ok'=>true,
+            'status'=>"success",
+            "messsage"=>"Tests retrieved successfully",
+            "data"=>$test
+        ]);
+    } catch (\Throwable $th) {
+        Log::error('Error processing PDF: ' . $th->getMessage());
+        ob_clean();
+
+        return response()->json([
+            'ok' => false,
+            'status' => 'error',
+            'message' => 'Error occurred while processing the PDF.',
+            'error' => $th->getMessage(),
+        ], 500);
+    }
+}
+
 
 
 public function uploadExcell(ExcellRequest $request)
@@ -318,6 +344,70 @@ public function getExports()
         ], 500);
     }
 }
+
+public function uploadExcellExports(ExcellRequest $request)
+{
+    try {
+       
+        // Retrieve the uploaded file
+        $file = $request->file('file');
+      
+
+        // Load data from the first sheet into an array
+        $data = Excel::toArray([], $file);
+        $sheetData = $data[0]; // Access the first sheet
+        // Map the headers to lower case for uniformity
+        $headers = array_map('strtolower', $sheetData[0]);
+        $columnMap = array_flip($headers); // Maps header names to their index positions
+
+        // Loop through each row of data, skipping the header row
+        foreach ($sheetData as $index => $row) {
+            if ($index == 0) {
+                continue; // Skip the header row
+            }
+        
+            $rowData = [];
+        
+            foreach ($columnMap as $columnName => $columnIndex) {
+                if ($columnName == 'date' && !empty($row[$columnIndex] ?? null)) {
+                    try {
+                        $rowData[$columnName] = Carbon::parse($row[$columnIndex])->format('Y-m-d');
+                    } catch (\Exception $e) {
+                        Log::error('Date parsing error for row: ' . $index . ' with value: ' . $row[$columnIndex]);
+                        $rowData[$columnName] = null;
+                    }
+                } else {
+                    $rowData[$columnName] = $row[$columnIndex] ?? null;
+                }
+            }
+
+           
+            Exports::create($rowData);
+        }
+        
+
+        // Return a success response
+        return response()->json([
+            'message' => 'Excel file processed and data inserted successfully.',
+            'ok' => true,
+            'status' => "success"
+        ]);
+
+    } catch (Throwable $th) {
+        // Log the actual error message
+        Log::error($th->getMessage());
+
+        // Return an error response
+        return response()->json([
+            'ok' => false,
+            'status' => 'error',
+            'message' => 'Error occurred while processing the Excel file.',
+            'error' => $th->getMessage(),
+        ], 500);
+    }
+}
+
+
 
 
     
