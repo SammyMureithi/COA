@@ -75,15 +75,15 @@ private function extractPdfData($pdfText){
     $pdfText = preg_replace("/\n+/", " ", $pdfText);
     // Initialize data array
     $data = [
-        'sample_no' => 'N/A',
-        'batch' => 'N/A',
-        'aceton_insoluble' => 'N/A',
-        'acid_value' => 'N/A',
-        'color_gardner'=> 'N/A',
-        'peroxide_value' => 'N/A',
-        'result_based_on_sample_mass' => 'N/A',
-        'toluene_insoluble_matter'=> 'N/A',
-        'viscosity_25C' => 'N/A' 
+        'sample_no' => null,
+        'batch' =>  null,
+        'aceton_insoluble' =>  null,
+        'acid_value' =>  null,
+        'color_gardner'=>  null,
+        'peroxide_value' =>  null,
+        'result_based_on_sample_mass' =>  null,
+        'toluene_insoluble_matter'=>  null,
+        'viscosity_25C' => null
     ];
    
 
@@ -122,16 +122,16 @@ private function extractPdfData($pdfText){
 
       // Extract "Aceton insoluble" value
       preg_match('/Aceton insoluble\s*([\d,]+)\s*%/i', $pdfText, $matches);
-      $data['aceton_insoluble'] = isset($matches[1]) ? $matches[1] . ' %' : 'N/A';
+      $data['aceton_insoluble'] = isset($matches[1]) ? $matches[1] . ' %' :  null;
   
     // Extract "Acid value" value
     preg_match('/Acid value\s*([\d,]+)\s*mg KOH\/g/i', $pdfText, $matches);
-    $data['acid_value'] = isset($matches[1]) ? $matches[1] . ' mg KOH/g' : 'N/A';
+    $data['acid_value'] = isset($matches[1]) ? $matches[1] . ' mg KOH/g' :  null;
 
 
      // Extract "Color Gardner, dilution 10 (w/w) with toluene" value
      preg_match('/Color Gardner, dilution 10 \(w\/w\) with toluene\s*([\d,]+)/i', $pdfText, $matches);
-     $data['color_gardner'] = isset($matches[1]) ? $matches[1] : 'N/A';
+     $data['color_gardner'] = isset($matches[1]) ? $matches[1] : null;
 
       // Extract "Peroxide value" value
     if (preg_match('/Peroxide value\s*(Less than\s*)?([\d,]+)\s*meq O2\/kg/i', $pdfText, $matches)) {
@@ -139,13 +139,13 @@ private function extractPdfData($pdfText){
             ? 'Less than ' . $matches[2] . ' meq O2/kg'
             : $matches[2] . ' meq O2/kg';
     } else {
-        $data['peroxide_value'] = 'N/A';
+        $data['peroxide_value'] =  null;
     }
     if (preg_match('/Result based on sample mass of\s*([\d,]+)\s*(\w+)/i', $pdfText, $matches)) {
         $data['result_based_on_sample_mass'] = $matches[1] . ' ' . $matches[2];
     }
      preg_match('/Toluene insoluble matter\s*([\d,]+)\s*%/i', $pdfText, $matches);
-    $data['toluene_insoluble_matter'] = isset($matches[1]) ? $matches[1] . ' %' : 'N/A';
+    $data['toluene_insoluble_matter'] = isset($matches[1]) ? $matches[1] . ' %' :  null;
 
 
     // Extract "Viscosity at 25°C" value
@@ -155,114 +155,71 @@ private function extractPdfData($pdfText){
     if (!isset($data['batch']) || $data['batch'] === "N/A") {
         // Adjusted regex to capture batch number
         preg_match('/Batch\s*number.*?\b(B[A-Z0-9]+)/i', $pdfText, $matches);
-        $data['batch'] = isset($matches[1]) ? $matches[1] : 'N/A';
+        $data['batch'] = isset($matches[1]) ? $matches[1] :  null;
         
        
     }
 preg_match('/Moisture\s*([\d.,]+)\s*%\s*\(w\/w\)/i', $pdfText, $matches);
 
-$data['moisture'] = isset($matches[1]) ? $matches[1] . ' % (w/w)' : 'N/A';
+$data['moisture'] = isset($matches[1]) ? $matches[1] . ' % (w/w)' : null;
 
 // Regex to match "Total plate count 30°C" followed by a numeric value and "cfu/g" unit
 preg_match('/Total plate count 30°C\s*([\d,]+)\s*cfu\/g/i', $pdfText, $matches);
 
-$data['total_plate_count'] = isset($matches[1]) ? $matches[1] . ' cfu/g' : 'N/A';
+$data['total_plate_count'] = isset($matches[1]) ? $matches[1] . ' cfu/g' :  null;
 
 // Regex to capture "Arsenic (As) (7440-38-2)" and the value following it
 // General regex to capture "Arsenic (As) (7440-38-2)" with variable values
 preg_match('/Arsenic \(As\) \(7440-38-2\)\s*(Less than\s*)?([\d.,]+)\s*mg\/kg/i', $pdfText, $matches);
 
-$data['arsenic'] = isset($matches[2]) ? (isset($matches[1]) ? $matches[1] . $matches[2] : $matches[2]) . ' mg/kg' : 'N/A';
+$data['arsenic'] = isset($matches[2]) ? (isset($matches[1]) ? $matches[1] . $matches[2] : $matches[2]) . ' mg/kg' :  null;
 
 preg_match('/(Arsenic \(As\) \(7440-38-2\)|Cadmium \(Cd\) \(7440-43-9\))\s*(Less than\s*)?([\d.,]+)\s*mg\/kg/i', $pdfText, $matches);
 
 // Regex to capture "Cadmium (Cd) (7440-43-9)" with any associated value
 preg_match('/Cadmium \(Cd\) \(7440-43-9\)\s*(Less than\s*)?([\d.,]+)\s*mg\/kg/i', $pdfText, $matches);
 
-$data['cadmium'] = isset($matches[2]) ? (isset($matches[1]) ? $matches[1] . $matches[2] : $matches[2]) . ' mg/kg' : 'N/A';
+$data['cadmium'] = isset($matches[2]) ? (isset($matches[1]) ? $matches[1] . $matches[2] : $matches[2]) . ' mg/kg' :  null;
 // Regex to capture "Lead (Pb) (7439-92-1)" with any associated value
 preg_match('/Lead \(Pb\) \(7439-92-1\)\s*(Less than\s*)?([\d.,]+)\s*mg\/kg/i', $pdfText, $matches);
 
-$data['lead'] = isset($matches[2]) ? (isset($matches[1]) ? $matches[1] . $matches[2] : $matches[2]) . ' mg/kg' : 'N/A';
+$data['lead'] = isset($matches[2]) ? (isset($matches[1]) ? $matches[1] . $matches[2] : $matches[2]) . ' mg/kg' :  null;
 preg_match('/Mercury \(Hg\) \(7439-97-6\)\s*(Less than\s*)?([\d.,]+)\s*mg\/kg/i', $pdfText, $matches);
 
-$data['mercury'] = isset($matches[2]) ? (isset($matches[1]) ? $matches[1] . $matches[2] : $matches[2]) . ' mg/kg' : 'N/A';
+$data['mercury'] = isset($matches[2]) ? (isset($matches[1]) ? $matches[1] . $matches[2] : $matches[2]) . ' mg/kg' :  null;
 // Regex to capture "Total plate count 30°C" followed by a numeric value and "cfu/g"
 preg_match('/Total plate count 30°C\s*([\d.,]+)\s*cfu\/g/i', $pdfText, $matches);
 
-$data['total_plate_count'] = isset($matches[1]) ? $matches[1] . ' cfu/g' : 'N/A';
+$data['total_plate_count'] = isset($matches[1]) ? $matches[1] . ' cfu/g' :  null;
 
 // Regex to capture "Iron (Fe) (7439-89-6)" with its associated value
 preg_match('/Iron \(Fe\) \(7439-89-6\)\s*(Less than\s*)?([\d.,]+)\s*mg\/kg/i', $pdfText, $matches);
 
-$data['iron'] = isset($matches[2]) ? (isset($matches[1]) ? $matches[1] . $matches[2] : $matches[2]) . ' mg/kg' : 'N/A';
+$data['iron'] = isset($matches[2]) ? (isset($matches[1]) ? $matches[1] . $matches[2] : $matches[2]) . ' mg/kg' :  null;
 
 // Regex to capture "GMO Screening" test result (either 'positive' or 'negative')
 preg_match('/GMO Screening.*?\b(positive|negative)\b/i', $pdfText, $matches);
 
-$data['GMO Screening'] = isset($matches[1]) ? $matches[1] : 'N/A';
+$data['GMO Screening'] = isset($matches[1]) ? $matches[1] : null;
 
 preg_match('/Enterobacteriaceae\s*(Less than\s*)?([\d.,]+)\s*cfu\/g/i', $pdfText, $matches);
 
-$data['enterobacteriaceae'] = isset($matches[2]) ? (isset($matches[1]) ? $matches[1] . $matches[2] : $matches[2]) . ' cfu/g' : 'N/A';
+$data['enterobacteriaceae'] = isset($matches[2]) ? (isset($matches[1]) ? $matches[1] . $matches[2] : $matches[2]) . ' cfu/g' :  null;
  
 preg_match('/Total plate count\s*30°C\s*([\d.,]+)\s*cfu\/g/i', $pdfText, $matches);
 
-$data['total_plate_count'] = isset($matches[1]) ? $matches[1] . ' cfu/g' : 'N/A';
+$data['total_plate_count'] = isset($matches[1]) ? $matches[1] . ' cfu/g' :  null;
 
 preg_match('/Yeasts\s*&\s*moulds\s*(Less than\s*)?([\d.,]+)\s*cfu\/g/i', $pdfText, $matches);
 
-$data['yeasts_and_moulds'] = isset($matches[2]) ? (isset($matches[1]) ? $matches[1] . $matches[2] : $matches[2]) . ' cfu/g' : 'N/A';
+$data['yeasts_and_moulds'] = isset($matches[2]) ? (isset($matches[1]) ? $matches[1] . $matches[2] : $matches[2]) . ' cfu/g' :  null;
 preg_match('/Yeasts\s*(Less than\s*)?([\d.,]+)\s*cfu\/g/i', $pdfText, $matches);
 
-$data['yeasts'] = isset($matches[2]) ? (isset($matches[1]) ? $matches[1] . $matches[2] : $matches[2]) . ' cfu/g' : 'N/A';
+$data['yeasts'] = isset($matches[2]) ? (isset($matches[1]) ? $matches[1] . $matches[2] : $matches[2]) . ' cfu/g' :  null;
 
 preg_match('/Moulds\s*(Less than\s*)?([\d.,]+)\s*cfu\/g/i', $pdfText, $matches);
 
-$data['moulds'] = isset($matches[2]) ? (isset($matches[1]) ? $matches[1] . $matches[2] : $matches[2]) . ' cfu/g' : 'N/A';
-
-dd($data);
-
-
-
-// if (preg_match('/1-LPC.*?(LOQ \[Mol%\])/s', $pdfText, $blockMatches)) {
-//     $block = $blockMatches[0];
-//     echo "Captured Block:\n" . $block . "\n"; // Display the captured block
-// } else {
-//     echo "No block found!";
-//     die();
-// }
-
-// // Split the block into fields
-// $fields = preg_split('/\s+/', trim($block));
-
-// // Debug: Output the fields with indices
-// echo "Fields with indices:\n";
-// foreach ($fields as $index => $field) {
-//     echo "$index: $field\n";
-// }
-
-// // Correctly extract numeric values for 1-LPC
-// $data['1LPC'] = [
-//     'Integral' => $fields[18] ?? 'N/A',       
-//     'MW [g/Mol]' => $fields[46] ?? 'N/A',    
-//     'Content [mg]' => $fields[47] ?? 'N/A',  
-//     'Mol-%' => $fields[48] ?? 'N/A',         
-//     'Weight-%' => $fields[49] ?? 'N/A',      
-// ];
-
-// // Output extracted data
-// echo "\nExtracted Data for 1-LPC:\n";
-// print_r($data['1LPC']);
-// die();
-
-
-
-
-
-
-
-
+$data['moulds'] = isset($matches[2]) ? (isset($matches[1]) ? $matches[1] . $matches[2] : $matches[2]) . ' cfu/g' :  null;
 
 
 
@@ -284,7 +241,7 @@ TestResults::create([
     'mercury' => $data['mercury'],
     'iron' => $data['iron'],
     'GMO_Screening' => $data['GMO Screening'],
-    "enterobacteriaceae" =>$data['"enterobacteriaceae'] ,
+    "enterobacteriaceae" =>$data['enterobacteriaceae'] ,
     "yeasts_and_moulds" =>$data['yeasts_and_moulds'],
     "yeasts" =>$data['yeasts'],
     "moulds" =>$data['moulds'] 
