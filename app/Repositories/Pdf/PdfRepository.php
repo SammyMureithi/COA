@@ -202,6 +202,70 @@ preg_match('/GMO Screening.*?\b(positive|negative)\b/i', $pdfText, $matches);
 
 $data['GMO Screening'] = isset($matches[1]) ? $matches[1] : 'N/A';
 
+preg_match('/Enterobacteriaceae\s*(Less than\s*)?([\d.,]+)\s*cfu\/g/i', $pdfText, $matches);
+
+$data['enterobacteriaceae'] = isset($matches[2]) ? (isset($matches[1]) ? $matches[1] . $matches[2] : $matches[2]) . ' cfu/g' : 'N/A';
+ 
+preg_match('/Total plate count\s*30°C\s*([\d.,]+)\s*cfu\/g/i', $pdfText, $matches);
+
+$data['total_plate_count'] = isset($matches[1]) ? $matches[1] . ' cfu/g' : 'N/A';
+
+preg_match('/Yeasts\s*&\s*moulds\s*(Less than\s*)?([\d.,]+)\s*cfu\/g/i', $pdfText, $matches);
+
+$data['yeasts_and_moulds'] = isset($matches[2]) ? (isset($matches[1]) ? $matches[1] . $matches[2] : $matches[2]) . ' cfu/g' : 'N/A';
+preg_match('/Yeasts\s*(Less than\s*)?([\d.,]+)\s*cfu\/g/i', $pdfText, $matches);
+
+$data['yeasts'] = isset($matches[2]) ? (isset($matches[1]) ? $matches[1] . $matches[2] : $matches[2]) . ' cfu/g' : 'N/A';
+
+preg_match('/Moulds\s*(Less than\s*)?([\d.,]+)\s*cfu\/g/i', $pdfText, $matches);
+
+$data['moulds'] = isset($matches[2]) ? (isset($matches[1]) ? $matches[1] . $matches[2] : $matches[2]) . ' cfu/g' : 'N/A';
+
+dd($data);
+
+
+
+// if (preg_match('/1-LPC.*?(LOQ \[Mol%\])/s', $pdfText, $blockMatches)) {
+//     $block = $blockMatches[0];
+//     echo "Captured Block:\n" . $block . "\n"; // Display the captured block
+// } else {
+//     echo "No block found!";
+//     die();
+// }
+
+// // Split the block into fields
+// $fields = preg_split('/\s+/', trim($block));
+
+// // Debug: Output the fields with indices
+// echo "Fields with indices:\n";
+// foreach ($fields as $index => $field) {
+//     echo "$index: $field\n";
+// }
+
+// // Correctly extract numeric values for 1-LPC
+// $data['1LPC'] = [
+//     'Integral' => $fields[18] ?? 'N/A',       
+//     'MW [g/Mol]' => $fields[46] ?? 'N/A',    
+//     'Content [mg]' => $fields[47] ?? 'N/A',  
+//     'Mol-%' => $fields[48] ?? 'N/A',         
+//     'Weight-%' => $fields[49] ?? 'N/A',      
+// ];
+
+// // Output extracted data
+// echo "\nExtracted Data for 1-LPC:\n";
+// print_r($data['1LPC']);
+// die();
+
+
+
+
+
+
+
+
+
+
+
 TestResults::create([
     'sample_number' => $data['sample_no'],
     'batch_number' => $data['batch'],
@@ -219,7 +283,11 @@ TestResults::create([
     'lead' => $data['lead'],
     'mercury' => $data['mercury'],
     'iron' => $data['iron'],
-    'GMO_Screening' => $data['GMO Screening']
+    'GMO_Screening' => $data['GMO Screening'],
+    "enterobacteriaceae" =>$data['"enterobacteriaceae'] ,
+    "yeasts_and_moulds" =>$data['yeasts_and_moulds'],
+    "yeasts" =>$data['yeasts'],
+    "moulds" =>$data['moulds'] 
 ]);
     return $data;
 }

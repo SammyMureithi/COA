@@ -24,6 +24,10 @@ class TestResults extends Model
     'lead',
     'mercury',
     'iron', 
-   'GMO_Screening' 
+   'GMO_Screening' ,
+   "enterobacteriaceae" ,
+   "yeasts_and_moulds",
+   "yeasts",
+   "moulds" 
 ];
 }

@@ -30,6 +30,10 @@ return new class extends Migration
             $table->string('mercury')->nullable();
             $table->string('iron')->nullable();
             $table->string('GMO_Screening')->nullable();
+            $table->string('enterobacteriaceae')->nullable();
+            $table->string('yeasts_and_moulds')->nullable();
+            $table->string('yeasts')->nullable();
+            $table->string('moulds')->nullable();
             $table->unique(['batch_number', 'sample_number']);
             $table->timestamps();
         });
