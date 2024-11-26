@@ -4,6 +4,7 @@ namespace App\Repositories\Pdf;
 
 use App\Http\Requests\ExcellRequest;
 use App\Http\Requests\PdfQuestioneer;
+use App\Models\ExportData;
 use App\Models\Exports;
 use App\Models\TestResults;
 use App\Repositories\Pdf\PdfRepositoryInterface;
@@ -279,25 +280,28 @@ public function getTestDetails(){
     }
 }
 
-public function getExcellDetails(Request $request){
+public function getExcellDetails(Request $request)
+{
     try {
         ob_clean();
-        $searchQuery = $request->query('class');
-        $test = Exports::where('red equivalent (if any; if not (certain): undefined)', $searchQuery)->paginate(5);
+
+        // Paginate the ExportData records (5 per page)
+        $exports = ExportData::paginate(5);
+
         return response()->json([
-            'ok'=>true,
-            'status'=>"success",
-            "messsage"=>"Tests retrieved successfully",
-            "data"=>$test
+            'ok' => true,
+            'status' => "success",
+            "message" => "Exports retrieved successfully",
+            "data" => $exports
         ]);
     } catch (\Throwable $th) {
-        Log::error('Error processing PDF: ' . $th->getMessage());
+        Log::error('Error retrieving ExportData: ' . $th->getMessage());
         ob_clean();
 
         return response()->json([
             'ok' => false,
             'status' => 'error',
-            'message' => 'Error occurred while processing the PDF.',
+            'message' => 'Error occurred while retrieving the export details.',
             'error' => $th->getMessage(),
         ], 500);
     }
@@ -373,15 +377,14 @@ public function getExports()
 public function uploadExcellExports(ExcellRequest $request)
 {
     try {
-       
         // Retrieve the uploaded file
         $file = $request->file('file');
-      
 
         // Load data from the first sheet into an array
         $data = Excel::toArray([], $file);
         $sheetData = $data[0]; // Access the first sheet
-        // Map the headers to lower case for uniformity
+
+        // Map the headers to lowercase for uniformity
         $headers = array_map('strtolower', $sheetData[0]);
         $columnMap = array_flip($headers); // Maps header names to their index positions
 
@@ -390,10 +393,11 @@ public function uploadExcellExports(ExcellRequest $request)
             if ($index == 0) {
                 continue; // Skip the header row
             }
-        
+
             $rowData = [];
-        
+
             foreach ($columnMap as $columnName => $columnIndex) {
+                // Parse date fields
                 if ($columnName == 'date' && !empty($row[$columnIndex] ?? null)) {
                     try {
                         $rowData[$columnName] = Carbon::parse($row[$columnIndex])->format('Y-m-d');
@@ -406,10 +410,50 @@ public function uploadExcellExports(ExcellRequest $request)
                 }
             }
 
-           
-            Exports::create($rowData);
+            // Check for a close match in the Export table using the product_description
+            $productDescription = $rowData['product_description'] ?? null;
+
+            if (!empty($productDescription)) {
+                // Perform a similarity check in the database
+                $similarRecord = Exports::query()
+                    ->where(function ($query) use ($productDescription) {
+                        $query->whereRaw('SOUNDEX(product_description) = SOUNDEX(?)', [$productDescription])
+                            ->orWhere('product_description', 'LIKE', '%' . $productDescription . '%');
+                    })
+                    ->first();
+
+                if ($similarRecord) {
+                    // If a match is found, log it and insert the record into ExportData
+                    Log::info('Matched: ' . $productDescription . ' with ' . $similarRecord->product_description);
+                  
+                    ExportData::create($rowData);
+                } else {
+                    // If no match is found, optionally perform a custom similarity check
+                    $allRecords = Exports::all(); // Load all records for comparison
+                    $bestMatch = null;
+                    $highestSimilarity = 0;
+
+                    foreach ($allRecords as $record) {
+                        similar_text($productDescription, $record->product_description, $percent);
+
+                        if ($percent > $highestSimilarity) {
+                            $highestSimilarity = $percent;
+                            $bestMatch = $record;
+                        }
+                    }
+
+                    // If similarity is above a threshold, consider it a match
+                    if ($highestSimilarity > 50) { // Threshold (50%) can be adjusted as needed
+                        Log::info('Fuzzy Match: ' . $productDescription . ' with ' . $bestMatch->product_description . ' (Similarity: ' . $highestSimilarity . '%)');
+                        ExportData::create($rowData);
+                    } else {
+                        Log::warning('No close match found for: ' . $productDescription);
+                    }
+                }
+            } else {
+                Log::warning('No product description found for row: ' . $index);
+            }
         }
-        
 
         // Return a success response
         return response()->json([
@@ -431,6 +475,7 @@ public function uploadExcellExports(ExcellRequest $request)
         ], 500);
     }
 }
+
 
 
 

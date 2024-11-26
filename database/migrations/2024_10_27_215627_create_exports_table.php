@@ -17,17 +17,6 @@ return new class extends Migration
             $table->string('red equivalent (if any; if not (certain): undefined)')->nullable(); 
             $table->string('indian_exporter_name')->nullable();
             $table->string('importer_country')->nullable();
-
-            // $table->string('hs_code')->nullable();
-            // $table->date('date')->nullable();
-           
-            // $table->integer('quantity')->nullable();
-            // $table->string('unit')->nullable();
-            // $table->decimal('fob_value_usd', 15, 2)->nullable();
-           
-            // $table->string('foreign_export_name')->nullable();
-        
-            
             $table->timestamps();
         });
     }
