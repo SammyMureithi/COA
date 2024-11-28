@@ -84,7 +84,9 @@ private function extractPdfData($pdfText){
         'peroxide_value' =>  null,
         'result_based_on_sample_mass' =>  null,
         'toluene_insoluble_matter'=>  null,
-        'viscosity_25C' => null
+        'viscosity_25C' => null,
+        'lpc'=>null,
+        'phosphorous'=>null
     ];
    
 
@@ -221,6 +223,87 @@ $data['yeasts'] = isset($matches[2]) ? (isset($matches[1]) ? $matches[1] . $matc
 preg_match('/Moulds\s*(Less than\s*)?([\d.,]+)\s*cfu\/g/i', $pdfText, $matches);
 
 $data['moulds'] = isset($matches[2]) ? (isset($matches[1]) ? $matches[1] . $matches[2] : $matches[2]) . ' cfu/g' :  null;
+// ******************************
+
+$pdfText = nl2br(htmlspecialchars($pdfText)); 
+// Find the position of "Phospholipid" and "1-LPC"
+$phospholipid_pos = strpos($pdfText, "Phospholipid"); // Position of "Phospholipid"
+$lpc_pos = strpos($pdfText, "1-LPC"); 
+$lpc_2_pos = strpos($pdfText, "2-LPC"); 
+$phosp_pos= strpos($pdfText, "Phosphorus");
+if($lpc_pos != false){
+// Extract text between "Phospholipid" and "1-LPC"
+$section_1 = substr($pdfText, $phospholipid_pos, $lpc_pos - $phospholipid_pos);
+
+// Extract text between "Phospholipid" and "2-LPC"
+$section_2 = substr($pdfText, $phospholipid_pos, $lpc_2_pos - $phospholipid_pos);
+
+// Extract text between "Phospholipid" and "2-LPC"
+$section_3 = substr($pdfText, $phospholipid_pos, $phosp_pos - $phospholipid_pos);
+
+// Split by spaces or delimiters to count the words/steps for 1-LPC
+$steps_1 = str_word_count($section_1, 1);
+
+// Split by spaces or delimiters to count the words/steps for 2-LPC
+$steps_2 = str_word_count($section_2, 1);
+
+// Split by spaces or delimiters to count the words/steps for 2-LPC
+$steps_3 = str_word_count($section_3, 1);
+
+// Count steps from "Phospholipid" to "1-LPC"
+$stepCount_1 = count($steps_1);
+
+// Count steps from "Phospholipid" to "2-LPC"
+$stepCount_2 = count($steps_2);
+
+$stepCount_3 = count($steps_3);
+
+// Now, we need to locate Weight-% and move the number of steps ahead to find the corresponding value for 1-LPC and 2-LPC
+
+// Find the position of "Weight-%"
+$weight_pos = strpos($pdfText, "Weight-%");
+
+// Extract the text after "Weight-%"
+$weight_section = substr($pdfText, $weight_pos);
+
+// Split this section to extract all the numbers in the Weight-% section
+$weight_values = preg_split('/\s+/', $weight_section);
+
+// Adjust the step count by subtracting 1 (since the first entry is "Weight-%")
+$adjusted_index_1 = $stepCount_1 - 1;
+$adjusted_index_2 = $stepCount_2 - 1;
+$adjusted_index_3 = $stepCount_3 - 1;
+
+// Get the values for 1-LPC and 2-LPC at the adjusted indexes
+$target_weight_1lpc = $weight_values[2]; 
+$target_weight_2lpc = $weight_values[3]; 
+$target_weight_phosphorous = $weight_values[15]; 
+$data['lpc'] = (isset($target_weight_1lpc) && isset($target_weight_2lpc))
+? $target_weight_1lpc + $target_weight_2lpc
+: null;
+
+// Use the same logic to combine Phosphorus weight into $data['phosphorous']
+$data['phosphorous'] = isset($target_weight_phosphorous) ? $target_weight_phosphorous : null;
+
+}
+// ***********************
+
+
+$pattern = '/Benzo\(a\)anthracene\s*\(56-55-3\)\s*[:\-]?\s*([^;]*?)(?=\s*;|$)/i';
+
+
+preg_match($pattern, $pdfText, $matches);
+
+$data = [];
+
+if (isset($matches[1])) {
+    $data['benzo_a_anthracene'] = trim($matches[1]);  
+} else {
+    $data['benzo_a_anthracene'] = null;  
+}
+
+
+dd($data);  
 
 
 
