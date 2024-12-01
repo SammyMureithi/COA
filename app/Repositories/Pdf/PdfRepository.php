@@ -23,41 +23,58 @@ class PdfRepository implements PdfRepositoryInterface
     public function readAndFillQuestioneers(PdfQuestioneer $request)
     {
         try {
+            // Check if files are uploaded
             if ($request->hasFile('file')) {
-                $file = $request->file('file');
+                $files = $request->file('file'); // This can either be a single file or an array of files
     
-                // Sanitize the file name
-                $originalFileName = $file->getClientOriginalName();
-                $sanitizedFileName = preg_replace('/[^A-Za-z0-9\-_\.]/', '_', str_replace(' ', '_', $originalFileName));
+                // Ensure that $files is an array
+                if (!is_array($files)) {
+                    $files = [$files];  // Convert single file to an array
+                }
     
-                // Store the uploaded file using Storage facade
-                $path = Storage::disk('local')->putFileAs('private/pdfs', $file, $sanitizedFileName);
-                $fullPath = storage_path('app/' . $path);
+                // Debug: Check if files exist
+                Log::info('Files found: ' . count($files));
     
-                // Extract text from the PDF
-                $pdfText = Pdf::getText($fullPath);
+                $filePaths = []; // Store paths of successfully uploaded files
     
-                // Parse the relevant fields from the PDF content
-                $data = $this->extractPdfData($pdfText);
+                foreach ($files as $file) {
+                    // Debug: Log the file information
+                    Log::info('Processing file: ' . $file->getClientOriginalName());
     
-                // Clear any previous output buffer to avoid unwanted content in the response
+                    // Sanitize the file name
+                    $originalFileName = $file->getClientOriginalName();
+                    $sanitizedFileName = preg_replace('/[^A-Za-z0-9\-_\.]/', '_', str_replace(' ', '_', $originalFileName));
+    
+                    // Store the uploaded file using the Storage facade
+                    $path = Storage::disk('local')->putFileAs('private/pdfs', $file, $sanitizedFileName);
+                    $filePaths[] = storage_path('app/' . $path);
+    
+                    // Extract text from the PDF
+                    $pdfText = Pdf::getText(storage_path('app/' . $path));
+    
+                    // Parse the relevant fields from the PDF content
+                    $data = $this->extractPdfData($pdfText);
+                    echo "hekksond";
+                }
+    
+                // Clear any previous output buffer
                 ob_clean();
     
                 return response()->json([
                     'ok' => true,
                     'status' => 'success',
-                    'message' => 'Record processed successfully',
+                    'message' => 'All files processed successfully',
                 ]);
             } else {
-                Log::error('No file found in the request.');
+                Log::error('No files found in the request.');
                 return response()->json([
                     'ok' => false,
                     'status' => 'error',
-                    'message' => 'No PDF file found in the request.',
+                    'message' => 'No PDF files found in the request.',
                 ], 400);
             }
         } catch (\Throwable $th) {
-            Log::error('Error processing PDF: ' . $th->getMessage());
+            Log::error('Error processing PDFs: ' . $th->getMessage());
     
             // Clear any previous output buffer
             ob_clean();
@@ -65,15 +82,17 @@ class PdfRepository implements PdfRepositoryInterface
             return response()->json([
                 'ok' => false,
                 'status' => 'error',
-                'message' => 'Error occurred while processing the PDF.',
+                'message' => 'Error occurred while processing the PDFs.',
                 'error' => $th->getMessage(),
             ], 500);
         }
     }
     
+    
 private function extractPdfData($pdfText){
     // Remove excessive newlines to handle multi-line values better
     $pdfText = preg_replace("/\n+/", " ", $pdfText);
+    echo "hakikmd";
     // Initialize data array
     $data = [
         'sample_no' => null,
@@ -88,7 +107,7 @@ private function extractPdfData($pdfText){
         'lpc'=>null,
         'phosphorous'=>null
     ];
-   
+    echo "hakikmd";
 
     
     // Step 1: Extract the Sample No
@@ -122,39 +141,55 @@ private function extractPdfData($pdfText){
             'message' => 'Sample No not found or pattern mismatch.',
         ], 500);
     }
+echo "hakikmd";
+   // Extract "Aceton insoluble" value
+preg_match('/Aceton insoluble\s*([\d,]+)\s*%/i', $pdfText, $matches);
 
-      // Extract "Aceton insoluble" value
-      preg_match('/Aceton insoluble\s*([\d,]+)\s*%/i', $pdfText, $matches);
-      $data['aceton_insoluble'] = isset($matches[1]) ? $matches[1] . ' %' :  null;
+// Store only the numeric value without the unit
+$data['aceton_insoluble'] = isset($matches[1]) ? $matches[1] : null;
+
   
-    // Extract "Acid value" value
-    preg_match('/Acid value\s*([\d,]+)\s*mg KOH\/g/i', $pdfText, $matches);
-    $data['acid_value'] = isset($matches[1]) ? $matches[1] . ' mg KOH/g' :  null;
+      // Extract "Acid value" value
+preg_match('/Acid value\s*([\d,]+)\s*mg KOH\/g/i', $pdfText, $matches);
+
+// Store only the numeric value without the unit
+$data['acid_value'] = isset($matches[1]) ? $matches[1] : null;
 
 
      // Extract "Color Gardner, dilution 10 (w/w) with toluene" value
      preg_match('/Color Gardner, dilution 10 \(w\/w\) with toluene\s*([\d,]+)/i', $pdfText, $matches);
      $data['color_gardner'] = isset($matches[1]) ? $matches[1] : null;
 
-      // Extract "Peroxide value" value
-    if (preg_match('/Peroxide value\s*(Less than\s*)?([\d,]+)\s*meq O2\/kg/i', $pdfText, $matches)) {
-        $data['peroxide_value'] = isset($matches[1]) && trim($matches[1]) === 'Less than'
-            ? 'Less than ' . $matches[2] . ' meq O2/kg'
-            : $matches[2] . ' meq O2/kg';
-    } else {
-        $data['peroxide_value'] =  null;
-    }
+   // Extract "Peroxide value" value
+if (preg_match('/Peroxide value\s*(Less than\s*)?([\d,]+)\s*meq O2\/kg/i', $pdfText, $matches)) {
+    // Check if "Less than" is present
+    $data['peroxide_value'] = isset($matches[1]) && trim($matches[1]) === 'Less than'
+        ? 'Less than ' . $matches[2] // Return only the numeric value with "Less than" if applicable
+        : $matches[2]; // Just the numeric value without units
+} else {
+    $data['peroxide_value'] = null; // Return null if no match
+}
+
     if (preg_match('/Result based on sample mass of\s*([\d,]+)\s*(\w+)/i', $pdfText, $matches)) {
         $data['result_based_on_sample_mass'] = $matches[1] . ' ' . $matches[2];
     }
-     preg_match('/Toluene insoluble matter\s*([\d,]+)\s*%/i', $pdfText, $matches);
-    $data['toluene_insoluble_matter'] = isset($matches[1]) ? $matches[1] . ' %' :  null;
+  // Extract "Toluene insoluble matter" value
+preg_match('/Toluene insoluble matter\s*([\d,]+)\s*%/i', $pdfText, $matches);
+
+// Store only the numeric value without the unit
+$data['toluene_insoluble_matter'] = isset($matches[1]) ? $matches[1] : null;
 
 
-    // Extract "Viscosity at 25°C" value
-    if (preg_match('/Viscosity at 25°C\s*([\d,]+)\s*(\w+)?/i', $pdfText, $matches)) {
-        $data['viscosity_25C'] = isset($matches[2]) ? $matches[1] . ' ' . $matches[2] : $matches[1];
-    }
+  // Extract "Viscosity at 25°C" value
+if (preg_match('/Viscosity at 25°C\s*([\d,]+)\s*(\w+)?/i', $pdfText, $matches)) {
+    // Get the numeric part, remove commas if present
+    $numericValue = (int) str_replace(',', '', $matches[1]);
+
+    // Divide the value by 1000 and store it as a float
+    $data['viscosity_25C'] = number_format($numericValue / 1000, 3, '.', '');
+}
+
+
     if (!isset($data['batch']) || $data['batch'] === "N/A") {
         // Adjusted regex to capture batch number
         preg_match('/Batch\s*number.*?\b(B[A-Z0-9]+)/i', $pdfText, $matches);
@@ -162,14 +197,24 @@ private function extractPdfData($pdfText){
         
        
     }
+// Extract "Moisture" value
 preg_match('/Moisture\s*([\d.,]+)\s*%\s*\(w\/w\)/i', $pdfText, $matches);
 
-$data['moisture'] = isset($matches[1]) ? $matches[1] . ' % (w/w)' : null;
+// Store only the numeric value without the unit
+$data['moisture'] = isset($matches[1]) ? $matches[1] : null;
+
 
 // Regex to match "Total plate count 30°C" followed by a numeric value and "cfu/g" unit
 preg_match('/Total plate count 30°C\s*([\d,]+)\s*cfu\/g/i', $pdfText, $matches);
 
-$data['total_plate_count'] = isset($matches[1]) ? $matches[1] . ' cfu/g' :  null;
+// Extract "Total plate count" value
+if (preg_match('/Total plate count\s*([\d,]+)\s*cfu\/g/i', $pdfText, $matches)) {
+    // Return only the numeric value without the unit "cfu/g"
+    $data['total_plate_count'] = $matches[1]; 
+} else {
+    $data['total_plate_count'] = null; // Return null if no match
+}
+
 
 // Regex to capture "Arsenic (As) (7440-38-2)" and the value following it
 // General regex to capture "Arsenic (As) (7440-38-2)" with variable values
@@ -198,7 +243,7 @@ $data['total_plate_count'] = isset($matches[1]) ? $matches[1] . ' cfu/g' :  null
 // Regex to capture "Iron (Fe) (7439-89-6)" with its associated value
 preg_match('/Iron \(Fe\) \(7439-89-6\)\s*(Less than\s*)?([\d.,]+)\s*mg\/kg/i', $pdfText, $matches);
 
-$data['iron'] = isset($matches[2]) ? (isset($matches[1]) ? $matches[1] . $matches[2] : $matches[2]) . ' mg/kg' :  null;
+$data['iron'] = isset($matches[2]) ? (isset($matches[1]) ? $matches[1] . $matches[2] : $matches[2]) : null;
 
 // Regex to capture "GMO Screening" test result (either 'positive' or 'negative')
 preg_match('/GMO Screening.*?\b(positive|negative)\b/i', $pdfText, $matches);
@@ -215,14 +260,28 @@ $data['total_plate_count'] = isset($matches[1]) ? $matches[1] . ' cfu/g' :  null
 
 preg_match('/Yeasts\s*&\s*moulds\s*(Less than\s*)?([\d.,]+)\s*cfu\/g/i', $pdfText, $matches);
 
-$data['yeasts_and_moulds'] = isset($matches[2]) ? (isset($matches[1]) ? $matches[1] . $matches[2] : $matches[2]) . ' cfu/g' :  null;
+// Check for Yeasts and Moulds
 preg_match('/Yeasts\s*(Less than\s*)?([\d.,]+)\s*cfu\/g/i', $pdfText, $matches);
+$data['yeasts_and_moulds'] = isset($matches[2]) ? (isset($matches[1]) ? $matches[1] . $matches[2] : $matches[2]) . ' cfu/g' : null;
+if ($data['yeasts_and_moulds'] === 'Less than 10 cfu/g') {
+    $data['yeasts_and_moulds'] = 'Negative';
+}
 
-$data['yeasts'] = isset($matches[2]) ? (isset($matches[1]) ? $matches[1] . $matches[2] : $matches[2]) . ' cfu/g' :  null;
+// Check for Yeasts
+preg_match('/Yeasts\s*(Less than\s*)?([\d.,]+)\s*cfu\/g/i', $pdfText, $matches);
+$data['yeasts'] = isset($matches[2]) ? (isset($matches[1]) ? $matches[1] . $matches[2] : $matches[2]) . ' cfu/g' : null;
+if ($data['yeasts'] === 'Less than 10 cfu/g') {
+    $data['yeasts'] = 'Negative';
+}
 
+// Check for Moulds
 preg_match('/Moulds\s*(Less than\s*)?([\d.,]+)\s*cfu\/g/i', $pdfText, $matches);
+$data['moulds'] = isset($matches[2]) ? (isset($matches[1]) ? $matches[1] . $matches[2] : $matches[2]) . ' cfu/g' : null;
+if ($data['moulds'] === 'Less than 10 cfu/g') {
+    $data['moulds'] = 'Negative';
+}
 
-$data['moulds'] = isset($matches[2]) ? (isset($matches[1]) ? $matches[1] . $matches[2] : $matches[2]) . ' cfu/g' :  null;
+
 // ******************************
 
 $pdfText = nl2br(htmlspecialchars($pdfText)); 
@@ -288,22 +347,19 @@ $data['phosphorous'] = isset($target_weight_phosphorous) ? $target_weight_phosph
 }
 // ***********************
 
-
-$pattern = '/Benzo\(a\)anthracene\s*\(56-55-3\)\s*[:\-]?\s*([^;]*?)(?=\s*;|$)/i';
-
-
-preg_match($pattern, $pdfText, $matches);
-
-$data = [];
-
-if (isset($matches[1])) {
-    $data['benzo_a_anthracene'] = trim($matches[1]);  
-} else {
-    $data['benzo_a_anthracene'] = null;  
-}
+// $pattern = '/Benzo\(a\)anthracene\s*\(56-55-3\)\s*[:\-]?\s*([^;]*?)(?=\s*;|$)/i';
 
 
-dd($data);  
+// preg_match($pattern, $pdfText, $matches);
+
+// $data = [];
+
+// if (isset($matches[1])) {
+//     $data['benzo_a_anthracene'] = trim($matches[1]);  
+// } else {
+//     $data['benzo_a_anthracene'] = null;  
+// }
+
 
 
 

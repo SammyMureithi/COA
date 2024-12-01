@@ -34,7 +34,6 @@ return new class extends Migration
             $table->string('yeasts_and_moulds')->nullable();
             $table->string('yeasts')->nullable();
             $table->string('moulds')->nullable();
-            $table->unique(['batch_number', 'sample_number']);
             $table->timestamps();
         });
     }
