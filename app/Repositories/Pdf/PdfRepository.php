@@ -364,6 +364,8 @@ $data['phosphorous'] = isset($target_weight_phosphorous) ? $target_weight_phosph
 
 
 TestResults::create([
+     'lpc'=>$data['lpc'],
+   'phosphorous'=>$data['phosphorous'],
     'sample_number' => $data['sample_no'],
     'batch_number' => $data['batch'],
     'aceton_insoluble' => $data['aceton_insoluble'],

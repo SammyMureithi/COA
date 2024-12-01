@@ -28,6 +28,8 @@ class TestResults extends Model
    "enterobacteriaceae" ,
    "yeasts_and_moulds",
    "yeasts",
-   "moulds" 
+   "moulds" ,
+   'lpc',
+   'phosphorous'
 ];
 }

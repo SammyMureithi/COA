@@ -34,6 +34,8 @@ return new class extends Migration
             $table->string('yeasts_and_moulds')->nullable();
             $table->string('yeasts')->nullable();
             $table->string('moulds')->nullable();
+            $table->string('phosphorous')->nullable();
+            $table->string('lpc')->nullable();
             $table->timestamps();
         });
     }
