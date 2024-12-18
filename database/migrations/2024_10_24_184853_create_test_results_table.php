@@ -36,6 +36,7 @@ return new class extends Migration
             $table->string('moulds')->nullable();
             $table->string('phosphorous')->nullable();
             $table->string('lpc')->nullable();
+            $table->string('pesticide_status')->nullable();
             $table->timestamps();
         });
     }

@@ -30,6 +30,7 @@ class TestResults extends Model
    "yeasts",
    "moulds" ,
    'lpc',
-   'phosphorous'
+   'phosphorous',
+   'pesticide_status'
 ];
 }

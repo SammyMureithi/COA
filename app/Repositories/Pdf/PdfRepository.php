@@ -51,11 +51,15 @@ class PdfRepository implements PdfRepositoryInterface
     
                     // Extract text from the PDF
                     $pdfText = Pdf::getText(storage_path('app/' . $path));
+                    Log::info('Extracted PDF text: ' . $pdfText);
     
                     // Parse the relevant fields from the PDF content
                     $data = $this->extractPdfData($pdfText);
                     echo "hekksond";
+
                 }
+
+               
     
                 // Clear any previous output buffer
                 ob_clean();
@@ -92,6 +96,9 @@ class PdfRepository implements PdfRepositoryInterface
 private function extractPdfData($pdfText){
     // Remove excessive newlines to handle multi-line values better
     $pdfText = preg_replace("/\n+/", " ", $pdfText);
+
+    $pdfText = preg_replace('/\s+/', ' ', $pdfText); 
+$pdfText = trim($pdfText);
     echo "hakikmd";
     // Initialize data array
     $data = [
@@ -120,7 +127,7 @@ private function extractPdfData($pdfText){
             $textAfterSampleNo = substr($pdfText, $sampleNoPos);
             
             // Step 3: Extract Batch No
-            preg_match('/BA\d+/', $textAfterSampleNo, $batchMatches);
+            preg_match('/(BA\d+|CS\d+-\d+-\d+)/', $textAfterSampleNo, $batchMatches);
             if (isset($batchMatches[0])) {
                 $data['batch'] = $batchMatches[0];
             } else {
@@ -218,9 +225,13 @@ if (preg_match('/Total plate count\s*([\d,]+)\s*cfu\/g/i', $pdfText, $matches)) 
 
 // Regex to capture "Arsenic (As) (7440-38-2)" and the value following it
 // General regex to capture "Arsenic (As) (7440-38-2)" with variable values
-preg_match('/Arsenic \(As\) \(7440-38-2\)\s*(Less than\s*)?([\d.,]+)\s*mg\/kg/i', $pdfText, $matches);
+// preg_match('/Arsenic \(As\) \(7440-38-2\)\s*(Less than\s*)?([\d.,]+)\s*mg\/kg/i', $pdfText, $matches);
 
-$data['arsenic'] = isset($matches[2]) ? (isset($matches[1]) ? $matches[1] . $matches[2] : $matches[2]) . ' mg/kg' :  null;
+// $data['arsenic'] = isset($matches[2]) ? (isset($matches[1]) ? $matches[1] . $matches[2] : $matches[2]) . ' mg/kg' :  null;
+
+//kamah only pick the value
+preg_match('/Arsenic \(As\) \(7440-38-2\)\s*(?:Less than\s*)?([\d.,]+)\s*mg\/kg/i', $pdfText, $matches);
+$data['arsenic'] = isset($matches[1]) ? $matches[1] . 'mg/kg' : null;
 
 preg_match('/(Arsenic \(As\) \(7440-38-2\)|Cadmium \(Cd\) \(7440-43-9\))\s*(Less than\s*)?([\d.,]+)\s*mg\/kg/i', $pdfText, $matches);
 
@@ -360,8 +371,33 @@ $data['phosphorous'] = isset($target_weight_phosphorous) ? $target_weight_phosph
 //     $data['benzo_a_anthracene'] = null;  
 // }
 
+// preg_match('/Arsenic \(As\) \(7440-38-2\)\s*(?:Less than\s*)?([\d.,]+)\s*mg\/kg/i', $pdfText, $matches);
+// $data['arsenic'] = isset($matches[1]) ? $matches[1] . 'mg/kg' : null;
+
+// kamah capture pesticide o1 and 02 results
+
+/// Search for Pesticide 01 status (Detected or Not Detected)
+preg_match('/Pesticide 01:.*?\s*(Detected|Not\s*detected)/i', $pdfText, $matchesPesticide01);
+$data['pesticide_01'] = isset($matchesPesticide01[1]) ? $matchesPesticide01[1] : null;
+
+// Search for Pesticide 02 status (Detected or Not Detected)
+preg_match('/Pesticide 02:.*?\s*(Detected|Not\s*detected)/i', $pdfText, $matchesPesticide02);
+$data['pesticide_02'] = isset($matchesPesticide02[1]) ? $matchesPesticide02[1] : null;
+
+// Determine the pesticide status based on the conditions
+if ($data['pesticide_01'] === 'Detected' && $data['pesticide_02'] === 'Detected') {
+    $data['pesticide_status'] = 'Detected';
+} elseif ($data['pesticide_01'] === 'Detected' || $data['pesticide_02'] === 'Detected') {
+    $data['pesticide_status'] = 'Review';
+} elseif ($data['pesticide_01'] === null && $data['pesticide_02'] == null ){
+    $data['pesticide_status'] = null;
+} else {
+   $data['pesticide_status'] = 'negative';
+}
 
 
+//dd($data['sample_no'], $data['batch'],  $data['arsenic'], $data['pesticide_01'], $data['pesticide_02'], $data['pesticide_status']);
+// dd($data);
 
 TestResults::create([
      'lpc'=>$data['lpc'],
@@ -386,7 +422,8 @@ TestResults::create([
     "enterobacteriaceae" =>$data['enterobacteriaceae'] ,
     "yeasts_and_moulds" =>$data['yeasts_and_moulds'],
     "yeasts" =>$data['yeasts'],
-    "moulds" =>$data['moulds'] 
+    "moulds" =>$data['moulds'],
+    'pesticide_status' => $data['pesticide_status'],
 ]);
     return $data;
 }
