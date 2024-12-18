@@ -387,7 +387,10 @@ $data['pesticide_02'] = isset($matchesPesticide02[1]) ? $matchesPesticide02[1] :
 // Determine the pesticide status based on the conditions
 if ($data['pesticide_01'] === 'Detected' && $data['pesticide_02'] === 'Detected') {
     $data['pesticide_status'] = 'Detected';
-} elseif ($data['pesticide_01'] === 'Detected' || $data['pesticide_02'] === 'Detected') {
+} elseif (
+    ($data['pesticide_01'] === 'Detected' && $data['pesticide_02'] === 'Not detected') ||
+    ($data['pesticide_01'] === 'Not detected' && $data['pesticide_02'] === 'Detected')
+) {
     $data['pesticide_status'] = 'Review';
 } elseif ($data['pesticide_01'] === null && $data['pesticide_02'] == null ){
     $data['pesticide_status'] = null;
