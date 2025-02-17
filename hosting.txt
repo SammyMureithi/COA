@@ -1,0 +1,7 @@
+1. Zip this whole folder
+2. Upload the folder in the server
+3. Extract the the content of the zip file and move the whole files of the folder to /public_html
+4. Rename the .env.example to .env file in the root directory
+5. Create the database
+6. Change the .env in line 28 -31 to suite your database creadentials
+7. Copy the code in database.sql in the root folder and run the sql in phpmyAdmin to create the tables in the database
